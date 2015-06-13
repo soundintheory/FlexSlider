@@ -22,6 +22,7 @@
         watchedEvent = "",
         watchedEventClearTimer,
         vertical = slider.vars.direction === "vertical",
+        sizeProp = vertical ? 'height' : 'width',
         reverse = slider.vars.reverse,
         carousel = (slider.vars.itemWidth > 0),
         fade = slider.vars.animation === "fade",
@@ -45,6 +46,7 @@
         slider.slides = $(slider.vars.selector, slider);
         slider.container = $(slider.containerSelector, slider);
         slider.count = slider.slides.length;
+        slider.isBorderBox = slider.slides.css('box-sizing') == 'border-box';
         // SYNC:
         slider.syncExists = $(slider.vars.sync).length > 0;
         // SLIDE:
@@ -572,7 +574,7 @@
             // SMOOTH HEIGHT:
             methods.smoothHeight();
           } else if (carousel) { //CAROUSEL:
-            slider.slides.width(slider.computedW);
+            slider.slides.css(vertical ? 'height' : 'width', slider.computedW);
             slider.update(slider.pagingCount);
             slider.setProps();
           }
@@ -686,7 +688,7 @@
           slider.direction = (slider.currentItem < target) ? "next" : "prev";
           master.direction = slider.direction;
 
-          if (Math.ceil((target + 1)/slider.visible) - 1 !== slider.currentSlide && target !== 0) {
+          if (Math.ceil((target + 1)/slider.visible) - 1 !== slider.currentSlide) {
             slider.currentItem = target;
             slider.slides.removeClass(namespace + "active-slide").eq(target).addClass(namespace + "active-slide");
             target = Math.floor(target/slider.visible);
@@ -840,7 +842,7 @@
       var last = (asNav) ? slider.pagingCount - 1 : slider.last;
       return (fromNav) ? true :
              (asNav && slider.currentItem === slider.count - 1 && target === 0 && slider.direction === "prev") ? true :
-             (asNav && slider.currentItem === 0 && target === slider.pagingCount - 1 && slider.direction !== "next") ? false :
+             (asNav && slider.currentItem === 0 && target === slider.count - 1 && slider.direction !== "next") ? false :
              (target === slider.currentSlide && !asNav) ? false :
              (slider.vars.animationLoop) ? true :
              (slider.atEnd && slider.currentSlide === 0 && target === last && slider.direction !== "next") ? false :
@@ -946,7 +948,7 @@
         if (type === "init") {
           if (!touch) {
             //slider.slides.eq(slider.currentSlide).fadeIn(slider.vars.animationSpeed, slider.vars.easing);
-            if (slider.vars.fadeFirstSlide == false) {
+            if (slider.vars.fadeFirstSlide === false) {
               slider.slides.css({ "opacity": 0, "display": "block", "zIndex": 1 }).eq(slider.currentSlide).css({"zIndex": 2}).css({"opacity": 1});
             } else {
               slider.slides.css({ "opacity": 0, "display": "block", "zIndex": 1 }).eq(slider.currentSlide).css({"zIndex": 2}).animate({"opacity": 1},slider.vars.animationSpeed,slider.vars.easing);
@@ -972,18 +974,23 @@
           minItems = slider.vars.minItems,
           maxItems = slider.vars.maxItems;
 
-      slider.w = (slider.viewport===undefined) ? slider.width() : slider.viewport.width();
+      slider.w = (slider.viewport===undefined) ? slider[sizeProp]() : slider.viewport[sizeProp]();
       slider.h = slide.height();
-      slider.boxPadding = slide.outerWidth() - slide.width();
+      slider.boxPadding = slider.isBorderBox ? 0 : slide.outerWidth() - slide.width();
 
       // CAROUSEL:
       if (carousel) {
+
+        var visible = Math.round(slider.w / slider.vars.itemWidth);
+        if (minItems && visible < minItems) visible = minItems;
+        if (maxItems && visible > maxItems) visible = maxItems;
+
         slider.itemT = slider.vars.itemWidth + slideMargin;
         slider.minW = (minItems) ? minItems * slider.itemT : slider.w;
         slider.maxW = (maxItems) ? (maxItems * slider.itemT) - slideMargin : slider.w;
         slider.itemW = (slider.minW > slider.w) ? (slider.w - (slideMargin * (minItems - 1)))/minItems :
                        (slider.maxW < slider.w) ? (slider.w - (slideMargin * (maxItems - 1)))/maxItems :
-                       (slider.vars.itemWidth > slider.w) ? slider.w : slider.vars.itemWidth;
+                       (slider.vars.itemWidth > slider.w) ? slider.w : (slider.w / visible);
 
         slider.visible = Math.floor(slider.w/(slider.itemW));
         slider.move = (slider.vars.move > 0 && slider.vars.move < slider.visible ) ? slider.vars.move : slider.visible;
@@ -1113,7 +1120,7 @@
     // Usability features
     pauseOnAction: true,            //Boolean: Pause the slideshow when interacting with control elements, highly recommended.
     pauseOnHover: false,            //Boolean: Pause the slideshow when hovering over slider, then resume when no longer hovering
-    pauseInvisible: true,   		//{NEW} Boolean: Pause the slideshow when tab is invisible, resume when visible. Provides better UX, lower CPU usage.
+    pauseInvisible: true,       //{NEW} Boolean: Pause the slideshow when tab is invisible, resume when visible. Provides better UX, lower CPU usage.
     useCSS: true,                   //{NEW} Boolean: Slider will use CSS3 transitions if available
     touch: true,                    //{NEW} Boolean: Allow touch swipe navigation of the slider on touch-enabled devices
     video: false,                   //{NEW} Boolean: If using video in the slider, will prevent CSS3 3D Transforms to avoid graphical glitches
