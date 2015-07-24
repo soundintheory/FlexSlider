@@ -688,10 +688,12 @@
           slider.direction = (slider.currentItem < target) ? "next" : "prev";
           master.direction = slider.direction;
 
-          if (Math.ceil((target + 1)/slider.visible) - 1 !== slider.currentSlide) {
+          var startItem = slider.currentSlide * slider.move;
+          
+          if (target < startItem || target >= (startItem + slider.visible)) {
             slider.currentItem = target;
             slider.slides.removeClass(namespace + "active-slide").eq(target).addClass(namespace + "active-slide");
-            target = Math.floor(target/slider.visible);
+            target = Math.ceil(target/slider.move);
           } else {
             slider.currentItem = target;
             slider.slides.removeClass(namespace + "active-slide").eq(target).addClass(namespace + "active-slide");
